@@ -21,7 +21,7 @@ from __future__ import print_function
 import collections
 import random
 import tokenization
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 flags = tf.flags
 
@@ -189,7 +189,7 @@ def create_training_instances(input_files, tokenizer, max_seq_length,
     # (2) Blank lines between documents. Document boundaries are needed so
     # that the "next sentence prediction" task doesn't span between documents.
     for input_file in input_files:
-        with tf.gfile.GFile(input_file, "r") as reader:
+        with tf.io.gfile.GFile(input_file, "r") as reader:
             while True:
                 line = tokenization.convert_to_unicode(reader.readline())
                 if not line:
@@ -412,7 +412,7 @@ def create_masked_lm_predictions(tokens, masked_lm_prob,
         masked_lm_positions.append(p.index)
         masked_lm_labels.append(p.label)
 
-    return (output_tokens, masked_lm_positions, masked_lm_labels)
+    return output_tokens, masked_lm_positions, masked_lm_labels
 
 
 def truncate_seq_pair(tokens_a, tokens_b, max_num_tokens, rng):
