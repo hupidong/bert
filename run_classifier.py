@@ -25,11 +25,13 @@ import modeling
 import optimization
 import tokenization
 import tensorflow as tf
-import tensorflow.compat.v1 as tf_v1
 
 flags = tf.flags
 
 FLAGS = flags.FLAGS
+# SavedModel
+flags.DEFINE_bool("do_export", True, "Whether to export the model.")
+flags.DEFINE_string("export_dir", None, "The dir where the exported model will be written.")
 
 ## Required parameters
 flags.DEFINE_string(
@@ -633,9 +635,9 @@ def model_fn_builder(bert_config, num_labels, init_checkpoint, learning_rate,
     def model_fn(features, labels, mode, params):  # pylint: disable=unused-argument
         """The `model_fn` for TPUEstimator."""
 
-        tf_v1.logging.info("*** Features ***")
+        tf.logging.info("*** Features ***")
         for name in sorted(features.keys()):
-            tf_v1.logging.info("  name = %s, shape = %s" % (name, features[name].shape))
+            tf.logging.info("  name = %s, shape = %s" % (name, features[name].shape))
 
         input_ids = features["input_ids"]
         input_mask = features["input_mask"]
@@ -653,7 +655,7 @@ def model_fn_builder(bert_config, num_labels, init_checkpoint, learning_rate,
             bert_config, is_training, input_ids, input_mask, segment_ids, label_ids,
             num_labels, use_one_hot_embeddings)
 
-        tvars = tf_v1.trainable_variables()
+        tvars = tf.trainable_variables()
         initialized_variable_names = {}
         scaffold_fn = None
         if init_checkpoint:
@@ -667,7 +669,7 @@ def model_fn_builder(bert_config, num_labels, init_checkpoint, learning_rate,
 
                 scaffold_fn = tpu_scaffold
             else:
-                tf_v1.train.init_from_checkpoint(init_checkpoint, assignment_map)
+                tf.train.init_from_checkpoint(init_checkpoint, assignment_map)
 
         tf.logging.info("**** Trainable Variables ****")
         for var in tvars:
@@ -789,8 +791,25 @@ def convert_examples_to_features(examples, label_list, max_seq_length,
     return features
 
 
+def serving_input_fn():
+    """serving"""
+    label_ids = tf.placeholder(tf.int32, [None], name='label_ids')
+    input_ids = tf.placeholder(tf.int32, [None, FLAGS.max_seq_length], name='input_ids')
+    input_mask = tf.placeholder(tf.int32, [None, FLAGS.max_seq_length], name='input_mask')
+    segment_ids = tf.placeholder(tf.int32, [None, FLAGS.max_seq_length], name='segment_ids')
+    input_fn = tf.estimator.export.build_raw_serving_input_receiver_fn(
+        {
+            'label_ids':label_ids,
+            'input_ids': input_ids,
+            'input_mask': input_mask,
+            'segment_ids': segment_ids
+        }
+    )()
+    return input_fn
+
+
 def main(_):
-    tf_v1.logging.set_verbosity(tf_v1.logging.INFO)
+    tf.logging.set_verbosity(tf.logging.INFO)
 
     processors = {
         "cola": ColaProcessor,
@@ -878,10 +897,10 @@ def main(_):
         if not tf.io.gfile.exists(train_file):
             file_based_convert_examples_to_features(
                 train_examples, label_list, FLAGS.max_seq_length, tokenizer, train_file)
-        tf_v1.logging.info("***** Running training *****")
-        tf_v1.logging.info("  Num examples = %d", len(train_examples))
-        tf_v1.logging.info("  Batch size = %d", FLAGS.train_batch_size)
-        tf_v1.logging.info("  Num steps = %d", num_train_steps)
+        tf.logging.info("***** Running training *****")
+        tf.logging.info("  Num examples = %d", len(train_examples))
+        tf.logging.info("  Batch size = %d", FLAGS.train_batch_size)
+        tf.logging.info("  Num steps = %d", num_train_steps)
         train_input_fn = file_based_input_fn_builder(
             input_file=train_file,
             seq_length=FLAGS.max_seq_length,
@@ -981,6 +1000,10 @@ def main(_):
                 num_written_lines += 1
         assert num_written_lines == num_actual_predict_examples
 
+    if FLAGS.do_export:
+        estimator._export_to_tpu = False
+        estimator.export_savedmodel(export_dir_base=FLAGS.export_dir, serving_input_fn=serving_input_fn)
+
 
 if __name__ == "__main__":
     flags.mark_flag_as_required("data_dir")
@@ -988,4 +1011,4 @@ if __name__ == "__main__":
     flags.mark_flag_as_required("vocab_file")
     flags.mark_flag_as_required("bert_config_file")
     flags.mark_flag_as_required("output_dir")
-    tf_v1.app.run()
+    tf.app.run()
