@@ -25,6 +25,7 @@ import modeling
 import optimization
 import tokenization
 import tensorflow as tf
+import pickle
 
 flags = tf.flags
 
@@ -392,6 +393,14 @@ def convert_single_example(ex_index, example, label_list, max_seq_length,
     label_map = {}
     for (i, label) in enumerate(label_list):
         label_map[label] = i
+
+    #--- save label2id.pkl ---
+    #在这里输出label2id.pkl , add by xmxoxo 2019/2/27
+    output_label2id_file = os.path.join(FLAGS.output_dir, "label2id.pkl")
+    if not os.path.exists(output_label2id_file):
+        with open(output_label2id_file,'wb') as w:
+            pickle.dump(label_map,w)
+    #--- Add end ---
 
     tokens_a = tokenizer.tokenize(example.text_a)
     tokens_b = None
