@@ -1002,7 +1002,7 @@ def main(_):
 
     if FLAGS.do_export:
         estimator._export_to_tpu = False
-        estimator.export_savedmodel(export_dir_base=FLAGS.export_dir, serving_input_fn=serving_input_fn)
+        estimator.export_savedmodel(FLAGS.export_dir, serving_input_fn)
 
 
 if __name__ == "__main__":
