@@ -31,7 +31,7 @@ flags = tf.flags
 
 FLAGS = flags.FLAGS
 # SavedModel
-flags.DEFINE_bool("do_export", True, "Whether to export the model.")
+flags.DEFINE_bool("do_export", False, "Whether to export the model.")
 flags.DEFINE_string("export_dir", None, "The dir where the exported model will be written.")
 
 ## Required parameters
@@ -830,9 +830,9 @@ def main(_):
     tokenization.validate_case_matches_checkpoint(FLAGS.do_lower_case,
                                                   FLAGS.init_checkpoint)
 
-    if not FLAGS.do_train and not FLAGS.do_eval and not FLAGS.do_predict:
+    if not FLAGS.do_train and not FLAGS.do_eval and not FLAGS.do_predict and not FLAGS.do_export:
         raise ValueError(
-            "At least one of `do_train`, `do_eval` or `do_predict' must be True.")
+            "At least one of `do_train`, `do_eval` , `do_predict' or `do_export`must be True.")
 
     bert_config = modeling.BertConfig.from_json_file(FLAGS.bert_config_file)
 
