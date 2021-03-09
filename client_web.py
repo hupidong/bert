@@ -7,6 +7,7 @@ import requests
 import tokenization
 from flask import Flask
 from flask import request, jsonify
+import numpy as np
 
 app = Flask(__name__)
 app.config['JSON_AS_ASCII'] = False
@@ -15,6 +16,7 @@ headers = {
     'cache-control': "no-cache"
 }
 
+cola_label_list = ["ungrammatical", "grammatical"]
 
 def _truncate_seq_pair(tokens_a, tokens_b, max_length):
     while True:
@@ -85,16 +87,38 @@ def detect_bert(content):
     # 根据自己的服务ip 端口号和model_name修改
     json_response = requests.post('http://0.0.0.0:8809/v1/models/cola:predict', data=data, headers=headers)
     print(data, json_response.text)
-    return jsonify(json.loads(json_response.text))
+    json_response_text = json.loads(json_response.text)
+    model_result = {}
+    for (i, class_label) in enumerate(cola_label_list):
+        model_result[class_label]=json_response_text['predictions'][0][i]
+        classify_result = {}
+
+    classify_result = {}
+    arg_max_ind = np.argmax(json_response_text['predictions'][0])
+    classify_result['name'] = cola_label_list[arg_max_ind]
+    classify_result['score'] = json_response_text['predictions'][0][arg_max_ind]
+
+    result = {}
+    result['modelResult'] = model_result
+    result['classifyResult'] = classify_result
+
+    #return jsonify(json.loads(result))
+    return result
 
 
-@app.route('/classify/cola', methods=['GET'])
+@app.route('/classify', methods=['GET'])
 def detect():
+    if 'id' not in request.args.keys():
+        raise Exception('task_id is empty.....')
     if 'query' not in request.args.keys():
-        raise Exception('query is empty.....')
-    content = request.args.get("query")
-    return detect_bert(content)
+        raise Exception('query isi empty.....')
+    query = request.args.get("query")
+    id = request.args.get('id', 'cola')
+    if id != 'cola':
+        raise Exception('Task-id is not cola')
+    return detect_bert(query)
 
 
 if __name__ == '__main__':
     app.run()
+    # http://ip:port/classify?id=cola&query=hello
