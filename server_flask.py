@@ -111,7 +111,7 @@ def detect():
     if 'id' not in request.args.keys():
         raise Exception('task_id is empty.....')
     if 'query' not in request.args.keys():
-        raise Exception('query isi empty.....')
+        raise Exception('query is empty.....')
     query = request.args.get("query")
     id = request.args.get('id', 'cola')
     if id != 'cola':
@@ -120,5 +120,5 @@ def detect():
 
 
 if __name__ == '__main__':
-    app.run()
+    app.run(host='0.0.0.0')
     # http://ip:port/classify?id=cola&query=hello
