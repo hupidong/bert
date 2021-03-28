@@ -5,4 +5,4 @@ tensorflow_model_server --rest_api_port=8809 \
     --model_base_path=/home/bert/models/cola &\
 
 #启动tornado-app服务
-python3 server_tornado.py
+nohup python3 server_tornado.py > log.log
